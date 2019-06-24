@@ -38,7 +38,6 @@ func MustAuth(handler http.Handler) http.Handler {
 // format: /auth/{action}/{provider}
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	segs := strings.Split(r.URL.Path, "/")
-	fmt.Println(len(segs))
 	if len(segs) != 4 {
 		http.Error(w, fmt.Sprint("No correct path given. Expected: /auth/{action}/{provider} "), http.StatusBadRequest)
 		return
@@ -94,7 +93,17 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		w.Header().Set("Location", "/chat")
 		w.WriteHeader(http.StatusTemporaryRedirect)
-
+	case "guest":
+		authCookieValue := objx.New(map[string]interface{}{
+			"name": "Guest",
+		}).MustBase64()
+		http.SetCookie(w, &http.Cookie{
+			Name:  "auth",
+			Value: authCookieValue,
+			Path:  "/",
+		})
+		w.Header().Set("Location", "/chat")
+		w.WriteHeader(http.StatusTemporaryRedirect)
 	default:
 		http.Error(w, fmt.Sprintf("Auth action %s not supported", action),
 			http.StatusNotFound)

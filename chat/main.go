@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -56,10 +57,15 @@ func main() {
 	if !exists_k || !exists_s {
 		log.Fatal("Error: github oauth2 credentials not given in .env file key: %s, secret: %s", exists_k, exists_s)
 	}
+	grok, exists_grok := os.LookupEnv("GROK")
+
+	if !exists_grok {
+		log.Fatal("Error: set GROK in environment variable")
+	}
 	// setup gomniauth
 	gomniauth.SetSecurityKey(signature.RandomKey(64))
 	gomniauth.WithProviders(
-		github.New(git_k, git_s, "http://localhost:8080/auth/callback/github"),
+		github.New(git_k, git_s, fmt.Sprint(grok, "/auth/callback/github")),
 	)
 	r := newRoom()
 	r.tracer = trace.New(os.Stdout)
