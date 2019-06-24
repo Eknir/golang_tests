@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -10,6 +9,8 @@ import (
 	"path/filepath"
 	"sync"
 	"trace"
+
+	"github.com/stretchr/objx"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/gomniauth"
@@ -28,7 +29,13 @@ func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t.once.Do(func() {
 		t.templ = template.Must(template.ParseFiles(filepath.Join("templates", t.filename)))
 	})
-	t.templ.Execute(w, r)
+	data := map[string]interface{}{
+		"Host": r.Host,
+	}
+	if authCookie, err := r.Cookie("auth"); err == nil {
+		data["UserData"] = objx.MustFromBase64(authCookie.Value)
+	}
+	t.templ.Execute(w, data)
 }
 
 func init() {
@@ -54,7 +61,6 @@ func main() {
 	gomniauth.WithProviders(
 		github.New(git_k, git_s, "http://localhost:8080/auth/callback/github"),
 	)
-	fmt.Println(git_k, git_s)
 	r := newRoom()
 	r.tracer = trace.New(os.Stdout)
 	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
