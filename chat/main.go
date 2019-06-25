@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"trace"
 
+	"github.com/eknir/myGo/trace"
 	"github.com/stretchr/objx"
 
 	"github.com/joho/godotenv"
@@ -55,10 +55,10 @@ func main() {
 	git_k, exists_k := os.LookupEnv("GITHUB_KEY")
 
 	if !exists_k || !exists_s {
-		log.Fatal("Error: github oauth2 credentials not given in .env file key: %s, secret: %s", exists_k, exists_s)
+		fmt.Printf("Error: github oauth2 credentials not given in .env file key: %v, secret: %v", exists_k, exists_s)
+		os.Exit(1)
 	}
 	grok, exists_grok := os.LookupEnv("GROK")
-
 	if !exists_grok {
 		log.Fatal("Error: set GROK in environment variable")
 	}
@@ -67,12 +67,14 @@ func main() {
 	gomniauth.WithProviders(
 		github.New(git_k, git_s, fmt.Sprint(grok, "/auth/callback/github")),
 	)
-	r := newRoom()
+	r := newRoom(UseGravatarAvatar)
 	r.tracer = trace.New(os.Stdout)
 	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
 	http.Handle("/login", &templateHandler{filename: "login.html"})
+	http.Handle("/upload", &templateHandler{filename: "upload.html"})
 	http.HandleFunc("/auth/", loginHandler)
 	http.HandleFunc("/logout", logoutHandler)
+	http.HandleFunc("/uploader", uploadHandler)
 	http.Handle("/room", r)
 	// get the room going
 	go r.run()
