@@ -19,6 +19,12 @@ import (
 	"github.com/stretchr/signature"
 )
 
+// set the active Avatar implementation
+var avatars Avatar = TryAvatars{
+	UseFileSystemAvatar,
+	UseAuthAvatar,
+	UseGravatarAvatar}
+
 // templ represents a single template
 type templateHandler struct {
 	once     sync.Once
@@ -67,11 +73,12 @@ func main() {
 	gomniauth.WithProviders(
 		github.New(git_k, git_s, fmt.Sprint(grok, "/auth/callback/github")),
 	)
-	r := newRoom(UseGravatarAvatar)
+	r := newRoom(avatars)
 	r.tracer = trace.New(os.Stdout)
 	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
 	http.Handle("/login", &templateHandler{filename: "login.html"})
 	http.Handle("/upload", &templateHandler{filename: "upload.html"})
+	http.Handle("/avatars/", http.StripPrefix("/avatars/", http.FileServer(http.Dir("./avatars"))))
 	http.HandleFunc("/auth/", loginHandler)
 	http.HandleFunc("/logout", logoutHandler)
 	http.HandleFunc("/uploader", uploadHandler)
